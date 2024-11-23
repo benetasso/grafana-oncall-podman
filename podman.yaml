@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: grafana
+spec:
+  containers:
+  - name: grafana
+    image: docker.io/grafana/grafana:11.2.0
+    ports:
+      - containerPort: 3000
+        hostPort: 3000
+    volumeMounts:
+    - name: grafana
+      mountPath: /configmap
+    env:
+    - name: GF_PATHS_CONFIG
+      value: /configmap/grafana.ini
+    - name: GF_INSTALL_PLUGINS
+      value: "grafana-oncall-app  vv1.9.0"
+  - name: oncall
+    image: grafana/oncall:v1.11.0
+    command: ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8080"]
+    envFrom:
+    - configMapRef:
+        name: oncall
+    ports:
+    - containerPort: 8080
+      hostPort: 8080
+  - name: redis
+    image: redis
+    ports:
+    - containerPort: 6379
+      hostPort: 6379
+  - name: postgres
+    image: postgres:17
+    env:
+    - name: POSTGRES_PASSWORD
+      value: postgres
+    ports:
+      - containerPort: 5432
+        hostPort: 5432
+    volumeMounts:
+    - name: postgres
+      mountPath: /docker-entrypoint-initdb.d/
+  volumes:
+    - name: grafana
+      configMap:
+        name: grafana
+    - name: postgres
+      configMap:
+        name: postgres
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana
+data:
+  grafana.ini: |
+    [database]
+     type = postgres
+     host = 127.0.0.1
+     name = grafana
+     user = grafana
+     password = grafana
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oncall
+data:
+  BASE_URL: http://localhost:8080
+  DATABASE_TYPE: postgresql
+  DATABASE_NAME: oncall
+  DATABASE_USER: oncall
+  DATABASE_PASSWORD: oncall
+  DATABASE_HOST: 127.0.0.1
+  DATABASE_PORT: 5432
+  BROKER_TYPE: redis
+  REDIS_URI: redis://127.0.0.1:6379/0
+  DJANGO_SETTINGS_MODULE: settings.hobby
+  SECRET_KEY: changemeinproductionchangemeinproductionchangemeinproductionchangemeinproductionchangemeinproduction
+  GRAFANA_API_URL: "http://localhost:3000/"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres
+data:
+  init.sql: |
+    CREATE ROLE grafana LOGIN PASSWORD 'grafana';
+    CREATE DATABASE grafana OWNER grafana;
+    CREATE ROLE oncall LOGIN PASSWORD 'oncall';
+    CREATE DATABASE oncall OWNER oncall;
+    CREATE DATABASE timeseries OWNER grafana;
+---
