@@ -16,9 +16,9 @@ spec:
     - name: GF_PATHS_CONFIG
       value: /configmap/grafana.ini
     - name: GF_INSTALL_PLUGINS
-      value: "grafana-oncall-app  vv1.9.0"
+      value: "grafana-oncall-app vv1.9.0"
   - name: oncall
-    image: grafana/oncall:v1.11.0
+    image: grafana/oncall:v1.9.0
     command: ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8080"]
     envFrom:
     - configMapRef:
@@ -31,6 +31,11 @@ spec:
     ports:
     - containerPort: 6379
       hostPort: 6379
+  - name: prometheus
+    image: prom/prometheus
+    ports:
+      - containerPort: 9090
+        hostPort: 9090
   - name: postgres
     image: postgres:17
     env:
