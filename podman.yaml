@@ -17,7 +17,7 @@ spec:
       value: /configmap/grafana.ini
     - name: GF_INSTALL_PLUGINS
       value: "grafana-oncall-app vv1.9.0"
-  - name: oncall
+  - name: oncall-engine
     image: grafana/oncall:v1.9.0
     command: ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8080"]
     envFrom:
@@ -26,6 +26,19 @@ spec:
     ports:
     - containerPort: 8080
       hostPort: 8080
+  - name: oncall-celery
+    image: grafana/oncall:v1.9.0
+    command: ["sh", "-c", "./celery_with_exporter.sh"]
+    envFrom:
+    - configMapRef:
+        name: oncall
+    env:
+    - name: CELERY_WORKER_QUEUE
+      value: "default,critical,long,slack,webhook,retry,celery,grafana"
+    - name: CELERY_WORKER_CONCURRENCY
+      value: "1"
+    - name: CELERY_WORKER_MAX_TASKS_PER_CHILD
+      value: "1"
   - name: redis
     image: redis
     ports:
