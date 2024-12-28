@@ -5,7 +5,7 @@ metadata:
 spec:
   containers:
   - name: grafana
-    image: docker.io/grafana/grafana:11.2.0
+    image: docker.io/grafana/grafana:11.4.0
     ports:
       - containerPort: 3000
         hostPort: 3000
@@ -16,9 +16,13 @@ spec:
     - name: GF_PATHS_CONFIG
       value: /configmap/grafana.ini
     - name: GF_INSTALL_PLUGINS
-      value: "grafana-oncall-app vv1.9.0"
+      value: "grafana-oncall-app v1.13.11"
+    - name: GF_FEATURE_TOGGLES_ENABLE
+      value: externalServiceAccounts
+    - name: GF_AUTH_MANAGED_SERVICE_ACCOUNTS_ENABLED
+      value: true
   - name: oncall-engine
-    image: grafana/oncall:v1.9.0
+    image: grafana/oncall:v1.13.11
     command: ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8080"]
     envFrom:
     - configMapRef:
@@ -27,7 +31,7 @@ spec:
     - containerPort: 8080
       hostPort: 8080
   - name: oncall-celery
-    image: grafana/oncall:v1.9.0
+    image: grafana/oncall:v1.13.11
     command: ["sh", "-c", "./celery_with_exporter.sh"]
     envFrom:
     - configMapRef:
@@ -80,6 +84,10 @@ data:
      name = grafana
      user = grafana
      password = grafana
+    [log.console]
+     format = json
+    [feature_toggles]
+     accessControlOnCall = false
 ---
 apiVersion: v1
 kind: ConfigMap
